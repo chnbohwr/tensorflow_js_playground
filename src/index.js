@@ -1,11 +1,10 @@
-import App from './app.js';
-App();
+import React from 'react';
+import ReactDOM from 'react-dom';
+import App from './app';
+
+ReactDOM.render(<App />, document.getElementById('root'));
+
+// Hot Module Replacement
 if (module.hot) {
-  module.hot.accept(function () {
-    console.log('模块或其依赖项之一刚刚更新时');
-    import('./app').then((App)=>{
-      App.default();
-    });
-  });
+  module.hot.accept();
 }
-console.log('app running');
