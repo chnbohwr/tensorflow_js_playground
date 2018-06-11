@@ -140,7 +140,7 @@ export default class App extends Component {
           hasModel ? (
             <div>
               <Button disabled={isLoading} style={{ marginRight: 20 }} color="primary" onClick={this.onClickTraining}>再訓練</Button>
-              <Button disabled={isLoading} color="primary" onClick={this.onClickReset}>重置</Button>
+              <Button disabled={isLoading} color="danger" onClick={this.onClickReset}>重置</Button>
             </div>
           ) : (
               <Button disabled={isLoading} color="success" onClick={this.onClickCreateModel}>建立模型</Button>

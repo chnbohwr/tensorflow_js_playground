@@ -11,4 +11,4 @@ then open the browser http://localhost:1234
 
 change code and it will hot reload. enjoy it.
 
-![Imgur](https://i.imgur.com/I0Ni9QE.gif)
+![Imgur](./screenshot.png)
