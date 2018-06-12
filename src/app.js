@@ -1,21 +1,18 @@
-import * as tf from '@tensorflow/tfjs';
 import React, { Component } from 'react';
-import random from 'random';
-import { Button, FormGroup, Label, Input, Alert } from 'reactstrap';
+import {
+  Button, FormGroup, Label, Input,
+} from 'reactstrap';
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import Layer from './layer.js';
+import NeuralNetwork from './NeuralNetwork.js';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-window.tf = tf;
 
 export default class App extends Component {
   state = {
-    inputShape: [1],
-    outputShape: [1],
-    batchSize: 200,
-    activation: 'elu',
-    hiddenLayers: 3,
-    hiddenUnits: 3,
-    epochs: 200,
+    batchSize: 50,
+    epochs: 20,
+    layers: [],
     isLoading: false,
     hasModel: false,
   }
@@ -48,102 +45,81 @@ export default class App extends Component {
     this.setState({ hasModel: false, isLoading: false, data: null })
   }
   onClickCreateModel = () => {
-    const { activation, hiddenLayers, hiddenUnits } = this.state
-    const model = tf.sequential();
-    const xsArr = Array
-      .from(Array(this.state.batchSize))
-      .map(() => random.float(-5, 5))
-      .sort((a, b) => (a - b));
-    const ysArr = xsArr.map(d => Math.sin(d));
-    // this.state.layers.forEach((d, i) => {
-    //   const option = { units: d.units, useBias: true, activation };
-    //   if (i === 0) {
-    //     option.inputShape = this.state.inputShape;
-    //   }
-    //   if (i === this.state.layers.length - 1) {
-    //     option.outputShape = this.state.outputShape;
-    //   }
-    //   const layer = tf.layers.dense(option);
-    //   model.add(layer);
-    // });
-    model.add(tf.layers.dense({ units: 1, useBias: true, inputShape: [1] }));
-    for (let i = 0; i < hiddenLayers; i++) {
-      model.add(tf.layers.dense({ units: hiddenUnits, useBias: true, activation }));
-    }
-    model.add(tf.layers.dense({ units: 1, useBias: true }));
-    model.compile({ loss: 'meanSquaredError', optimizer: 'adam' });
-    this.model = model;
-    this.xsArr = xsArr;
-    this.ysArr = ysArr;
-    window.model = model;
-    console.log('create model success');
+    const { batchSize, layers, epochs } = this.state;
+    this.network = new NeuralNetwork({
+      batchSize, layers, epochs,
+    });
     this.setState({ hasModel: true });
     this.onClickTraining();
   }
   onClickTraining = () => {
-    const { epochs, } = this.state;
-    this.setState({ isLoading: true });
-    const xs = tf.tensor2d(this.xsArr, [this.state.batchSize, 1]);
-    const ys = tf.tensor2d(this.ysArr, [this.state.batchSize, 1]);
-    console.log('hi1');
 
-    console.log('hi2');
-    this.model.fit(xs, ys, { epochs }).then((f) => {
-      console.log(f);
-      const predictArr = this.model.predictOnBatch(xs).dataSync();
-      console.log('hi4')
-      const data = Array.from(predictArr)
-        .map((predict, i) => ({
-          name: this.xsArr[i],
-          answer: this.ysArr[i],
-          predict: predict
-        }));
-      this.setState({ data, isLoading: false });
-    });
-    console.log('hi3');
+    this.network.training().then(() => {
+      this.network.predict().then(prediceDatas => {
+        const data = Array.from(prediceDatas).map((pd, i) => {
+          return {
+            predict: pd,
+            answer: this.network.yArr[i] || null,
+            name: this.network.predictArr[i],
+          }
+        });
+        this.setState({ data });
+      })
+    })
+  }
+  onLayerAdd = () => {
+    const layers = [
+      ...this.state.layers,
+      {
+        id: Math.random().toString().substring(2),
+        activation: 'elu',
+        units: 1,
+      }
+    ];
+    this.setState({ layers });
+  }
+  onLayerChange = (layerData) => {
+    const index = this.state.layers.findIndex(l => l.id === layerData.id);
+    this.state.layers.splice(index, 1, layerData);
+    const layers = [...this.state.layers];
+    this.setState({ layers });
+  }
+
+  onLayerDel = (layerData) => {
+    const index = this.state.layers.findIndex(l => l.id === layerData.id);
+    this.state.layers.splice(index, 1);
+    const layers = [...this.state.layers];
+    this.setState({ layers });
   }
   render() {
     const {
       batchSize, epochs, data,
-      activation, hiddenLayers, hiddenUnits,
+      layers,
       hasModel, isLoading,
     } = this.state;
     return (
       <div style={{ padding: 20 }}>
         <FormGroup>
-          <Label>隱藏層數目</Label>
-          <Input disabled={isLoading} type="number" name="hiddenLayers" value={hiddenLayers} onChange={this.onChangeHiddenLayers} />
+          <Label>Data Size</Label>
+          <Input disabled={hasModel} type="number" name="batchsize" value={batchSize} onChange={this.onChangeBatchSize} />
         </FormGroup>
         <FormGroup>
-          <Label>隱藏層神經元數目</Label>
-          <Input disabled={isLoading} type="number" name="hiddenUnits" value={hiddenUnits} onChange={this.onChangeHiddenUnits} />
+          <Label>Training Epochs</Label>
+          <Input disabled={hasModel} type="number" name="epoch" value={epochs} onChange={this.onChangeEpochs} />
         </FormGroup>
-        <FormGroup>
-          <Label>訓練樣本數</Label>
-          <Input disabled={isLoading} type="number" name="batchsize" value={batchSize} onChange={this.onChangeBatchSize} />
-        </FormGroup>
-        <FormGroup>
-          <Label>訓練次數</Label>
-          <Input disabled={isLoading} type="number" name="epoch" value={epochs} onChange={this.onChangeEpochs} />
-        </FormGroup>
-        <FormGroup>
-          <Label>激勵函數</Label>
-          <Input disabled={isLoading} value={activation} type="select" name="activation" onChange={this.onChangeActivation}>
-            <option>elu</option>
-            <option>relu</option>
-            <option>relu6</option>
-            <option>sigmoid</option>
-            <option>softmax</option>
-          </Input>
-        </FormGroup>
+        {
+          layers.map(layerData => <Layer disabled={hasModel} key={layerData.id} layerData={layerData} onChange={this.onLayerChange} onDel={this.onLayerDel} />)
+        }
+        <Button disabled={hasModel} style={{ marginBottom: 16 }} color="success" onClick={this.onLayerAdd}>Add Hidden Layer</Button>
+        <br />
         {
           hasModel ? (
             <div>
-              <Button disabled={isLoading} style={{ marginRight: 20 }} color="primary" onClick={this.onClickTraining}>再訓練</Button>
-              <Button disabled={isLoading} color="danger" onClick={this.onClickReset}>重置</Button>
+              <Button disabled={isLoading} style={{ marginRight: 20 }} color="primary" onClick={this.onClickTraining}>Training Again</Button>
+              <Button disabled={isLoading} color="danger" onClick={this.onClickReset}>Reset</Button>
             </div>
           ) : (
-              <Button disabled={isLoading} color="success" onClick={this.onClickCreateModel}>建立模型</Button>
+              <Button disabled={isLoading} color="success" onClick={this.onClickCreateModel}>Start</Button>
             )
         }
 
@@ -152,7 +128,7 @@ export default class App extends Component {
           data &&
           (
             <LineChart data={data} width={600} height={300}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }} >
+              margin={{ top: 30, right: 30, left: 20, bottom: 5 }} >
               <Line dataKey="answer" stroke="#8884d8" />
               <Line dataKey="predict" stroke="#82ca9d" />
               <XAxis dataKey="name" />

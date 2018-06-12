@@ -1,5 +1,6 @@
 # tensorflow_js_playground
-use parcel.js build tensorflow playground with hot module replacement.
+
+tensorflow js (tfjs) playground, you can add layers to training model to predict Math.sin line data.
 
 ```shell
 git clone https://github.com/chnbohwr/tensorflow_js_playground

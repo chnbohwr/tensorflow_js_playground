@@ -1,5 +1,5 @@
 {
-  "name": "tfjs",
+  "name": "tensorflow_js_playground",
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
